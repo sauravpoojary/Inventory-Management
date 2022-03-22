@@ -1,0 +1,12 @@
+spring:
+  data:
+    mongodb:
+      database: ProductsInventoryDb
+      host: localhost
+      port: 27017
+      
+server:
+  port: 9292
+  
+
+
