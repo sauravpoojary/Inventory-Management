@@ -49,6 +49,8 @@ public class ProductControllerTest {
 		.jsonPath("$").isArray()
 		.jsonPath("$[0].id").isEqualTo("1")
 		.jsonPath("$[0].productSku").isEqualTo("a123");
+		
+		
 	}
 	
 	@Test

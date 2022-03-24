@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.javaspring.api.dto.ProductCreationDto;
@@ -48,12 +50,13 @@ public class ProductController {
 	
 	@PostMapping("/saveProduct")
 	public Mono<Product> saveProduct(@Valid @RequestBody ProductCreationDto productDtoMono){
+		System.out.println("Hello");
 		return service.saveProduct(productDtoMono);
 	}
 	
 	
 	@PutMapping("/update/instQtyOnly/{id}")
-    public Mono<Product> DummyUpdateInstockOnly(@PathVariable String id,@Valid @RequestBody ProductUpdationInstockDto productDto) {
+    public Mono<Product> updateInstockOnly(@PathVariable String id,@Valid @RequestBody ProductUpdationInstockDto productDto) {
 		
 		
 		
@@ -63,14 +66,14 @@ public class ProductController {
     }
 	
 	@PutMapping("/update/reserveQtyOnly/{id}")
-    public Mono<Product> DummyUpdateReserveOnly(@PathVariable String id,@Valid @RequestBody ProductUpdationReserveDto productDto) {
+    public Mono<Product> updateReserveOnly(@PathVariable String id,@Valid @RequestBody ProductUpdationReserveDto productDto) {
 		Integer reserve = productDto.getReservedQty();
 		System.out.println(id);
         return service.updateProductReserveOnl(id, productDto, reserve);
     }
 	
 	@PutMapping("/update/demandQtyOnly/{id}")
-    public Mono<Product> DummyUpdateDemandOnly(@PathVariable String id,@Valid @RequestBody ProductUpdationDemandDto productDto) {
+    public Mono<Product> updateDemandOnly(@PathVariable String id,@Valid @RequestBody ProductUpdationDemandDto productDto) {
 		Integer demand = productDto.getDemandQty();
 		System.out.println(id);
         return service.updateProductDemandOnl(id, productDto, demand);
@@ -83,6 +86,26 @@ public class ProductController {
 		return service.getProductsByAvail();
 	}
 	
+	//-----------------------------------------------------------------------------------------------------------------------
+	
+	@PutMapping("/updateInstockBasedOnAction/{id}")
+	public Mono<Product> updateInstockBasedOnAction(@PathVariable String id,@Valid @RequestBody ProductUpdationInstockDto productDto,@RequestParam(value="action") String act) {
+		Integer instock = productDto.getInStockQty();
+		System.out.println("Hello");
+        return service.updateProductInstockByAction(id, productDto, instock,act);
+    }
+	@PutMapping("/updateDemandBasedOnAction/{id}")
+	public Mono<Product> updateDemandBasedOnAction(@PathVariable String id,@Valid @RequestBody ProductUpdationDemandDto productDto,@RequestParam(value="action") String act) {
+		Integer demand = productDto.getDemandQty();;
+		System.out.println("Hello");
+        return service.updateProductDemandByAction(id, productDto, demand,act);
+    }
+	@PutMapping("/updateReserveBasedOnAction/{id}")
+	public Mono<Product> updateReserveBasedOnAction(@PathVariable String id,@Valid @RequestBody ProductUpdationReserveDto productDto,@RequestParam(value="action") String act) {
+		Integer reserve = productDto.getReservedQty();
+		System.out.println("Hello");
+        return service.updateProductReserveByAction(id, productDto, reserve,act);
+    }
 	
 	
 	

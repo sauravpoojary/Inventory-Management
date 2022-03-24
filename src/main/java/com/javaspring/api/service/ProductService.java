@@ -25,6 +25,9 @@ public class ProductService {
 	@Autowired
 	private ProductRepository productRepo;
 	
+	public ProductService(ProductRepository repo) {
+		this.productRepo=repo;
+	}
 	public Flux<Product> getProducts(){
 		return productRepo.findAll();
 		
@@ -47,7 +50,7 @@ public class ProductService {
     }
 	
 	
-	public Mono<Product> saveProduct(@Valid ProductCreationDto productDtoMono){
+	public Mono<Product> saveProduct(ProductCreationDto productDtoMono){
 		System.out.println("he");
 	
 		if(productDtoMono.getInStockQty()<0)
@@ -117,7 +120,10 @@ public class ProductService {
 	        		if(inst<(p.getReservedQty()+p.getDemandQty())) {
 	        			return Mono.error(new SystemException(ErrorCode.INSTOCK_CANNOT_BE_NEGATIVE, "Instock is less than zero!!"));
 	        		}
-	        		p.setInStockQty(inst);
+	        		
+	        		Integer oldInstock=p.getInStockQty();
+	        		System.out.println(oldInstock);
+	        		p.setInStockQty(inst+oldInstock);
 	        		
 	        		
 	        		
@@ -145,10 +151,12 @@ public class ProductService {
 	                        new SystemException(ErrorCode.ENTITY_NOT_FOUND, "Resource not found"));
 	            }
 	        	return savedProductMono.flatMap(p->{
-	        		if(p.getInStockQty()<(reserve+p.getDemandQty())) {
+	        		
+	        		Integer oldReserve=p.getReservedQty();
+	        		if(p.getInStockQty()<(oldReserve+reserve+p.getDemandQty())) {
 	        			return Mono.error(new SystemException(ErrorCode.INSTOCK_CANNOT_BE_NEGATIVE, "Instock is less than zero!!"));
 	        		}
-	        		p.setReservedQty(reserve);
+	        		p.setReservedQty(reserve+oldReserve);
 	        		
 	        		Integer productInstockQty=p.getInStockQty();
 	        		Integer productReserveQty=p.getReservedQty();
@@ -175,10 +183,13 @@ public class ProductService {
 	                        new SystemException(ErrorCode.ENTITY_NOT_FOUND, "Resource not found"));
 	            }
 	        	return savedProductMono.flatMap(p->{
-	        		if(p.getInStockQty()<(p.getReservedQty()+demand)) {
+	        		
+	        		
+	        		Integer oldDemand=p.getDemandQty();
+	        		if(p.getInStockQty()<(p.getReservedQty()+demand+oldDemand)) {
 	        			return Mono.error(new SystemException(ErrorCode.INSTOCK_CANNOT_BE_NEGATIVE, "Instock is less than zero!!"));
 	        		}
-	        		p.setDemandQty(demand);
+	        		p.setDemandQty(demand+oldDemand);
 	        		
 	        		
 	        		Integer productInstockQty=p.getInStockQty();
@@ -192,6 +203,142 @@ public class ProductService {
 	    }
 	    
 	    
+	    
+	    public Mono<Product> updateProductInstockByAction(String productId,@Valid @RequestBody ProductUpdationInstockDto productDtoMono, Integer instock,String action) {
+	    	System.out.println(action+"..."+action.equals("add"));
+	    	if(action.equals("add")) {
+	    		System.out.print("Hel");
+	    		return updateProductInstockOnl(productId, productDtoMono, instock);
+	    	}
+	    	else if(action.equals("replace"))
+	    	{
+	    		if(instock<0)
+				{
+					return Mono.error(new SystemException(ErrorCode.INSTOCK_CANNOT_BE_NEGATIVE, "Instock Qty is less than zero!!"));
+							
+				}
+		    	Mono<Product> savedProductMono = productRepo.findById(productId);
+		        
+		        return savedProductMono.hasElement().flatMap(exists -> {
+		        	if (Boolean.FALSE.equals(exists)) {
+		                return Mono.error(
+		                        new SystemException(ErrorCode.ENTITY_NOT_FOUND, "Resource not found"));
+		            }
+		        	return savedProductMono.flatMap(p->{
+		        		
+		        		
+		        		//Integer oldDemand=p.getDemandQty();
+		        		if(instock<(p.getReservedQty()+p.getDemandQty())) {
+		        			return Mono.error(new SystemException(ErrorCode.INSTOCK_CANNOT_BE_NEGATIVE, "Instock is less than zero!!"));
+		        		}
+		        		//p.setDemandQty(demand+oldDemand);
+		        		
+		        		p.setInStockQty(instock);
+		        		Integer productInstockQty=p.getInStockQty();
+		        		Integer productReserveQty=p.getReservedQty();
+		        		Integer productDemandQty=p.getDemandQty();
+		        		Integer availableQty=productInstockQty-productReserveQty-productDemandQty;
+	            		p.setAvailableQty(availableQty);
+		        		return productRepo.save(p);
+		        	});
+		    });
+	    	}
+	    	
+	    	return Mono.error(new SystemException(ErrorCode.ACTION_NOT_EQUAL_TO_REPLACE_OR_ADD, "Add a proper action"));
+	    	
+	    	
+	    }
+	    
+	    
+	    public Mono<Product> updateProductDemandByAction(String productId,@Valid @RequestBody ProductUpdationDemandDto productDtoMono, Integer demand,String action) {
+	    	System.out.println(action+"..."+action.equals("add"));
+	    	if(action.equals("add")) {
+	    		System.out.print("Hel");
+	    		return updateProductDemandOnl(productId, productDtoMono, demand);
+	    	}
+	    	else if(action.equals("replace"))
+	    	{
+	    		if(demand<0)
+				{
+					return Mono.error(new SystemException(ErrorCode.DEMAND_CANNOT_BE_NEGATIVE, "Demand Qty is less than zero!!"));
+							
+				}
+		    	Mono<Product> savedProductMono = productRepo.findById(productId);
+		        
+		        return savedProductMono.hasElement().flatMap(exists -> {
+		        	if (Boolean.FALSE.equals(exists)) {
+		                return Mono.error(
+		                        new SystemException(ErrorCode.ENTITY_NOT_FOUND, "Resource not found"));
+		            }
+		        	return savedProductMono.flatMap(p->{
+		        		
+		        		
+		        		//Integer oldDemand=p.getDemandQty();
+		        		if(p.getInStockQty()<(p.getReservedQty()+demand)) {
+		        			return Mono.error(new SystemException(ErrorCode.INSTOCK_CANNOT_BE_NEGATIVE, "Instock is less than zero!!"));
+		        		}
+		        		//p.setDemandQty(demand+oldDemand);
+		        		
+		        		p.setDemandQty(demand);
+		        		Integer productInstockQty=p.getInStockQty();
+		        		Integer productReserveQty=p.getReservedQty();
+		        		Integer productDemandQty=p.getDemandQty();
+		        		Integer availableQty=productInstockQty-productReserveQty-productDemandQty;
+	            		p.setAvailableQty(availableQty);
+		        		return productRepo.save(p);
+		        	});
+		    });
+	    	}
+	    	
+	    	return Mono.error(new SystemException(ErrorCode.ACTION_NOT_EQUAL_TO_REPLACE_OR_ADD, "Add a proper action"));
+	    	
+	    	
+	    }
+	    
+	    public Mono<Product> updateProductReserveByAction(String productId,@Valid @RequestBody ProductUpdationReserveDto productDtoMono, Integer reserve,String action) {
+	    	System.out.println(action+"..."+action.equals("add"));
+	    	if(action.equals("add")) {
+	    		System.out.print("Hel");
+	    		return updateProductReserveOnl(productId, productDtoMono, reserve);
+	    	}
+	    	else if(action.equals("replace"))
+	    	{
+	    		if(reserve<0)
+				{
+					return Mono.error(new SystemException(ErrorCode.RESERVE_CANNOT_BE_NEGATIVE, "Demand Qty is less than zero!!"));
+							
+				}
+		    	Mono<Product> savedProductMono = productRepo.findById(productId);
+		        
+		        return savedProductMono.hasElement().flatMap(exists -> {
+		        	if (Boolean.FALSE.equals(exists)) {
+		                return Mono.error(
+		                        new SystemException(ErrorCode.ENTITY_NOT_FOUND, "Resource not found"));
+		            }
+		        	return savedProductMono.flatMap(p->{
+		        		
+		        		
+		        		//Integer oldDemand=p.getDemandQty();
+		        		if(p.getInStockQty()<(reserve+p.getDemandQty())) {
+		        			return Mono.error(new SystemException(ErrorCode.INSTOCK_CANNOT_BE_NEGATIVE, "Instock is less than zero!!"));
+		        		}
+		        		//p.setDemandQty(demand+oldDemand);
+		        		
+		        		p.setReservedQty(reserve);
+		        		Integer productInstockQty=p.getInStockQty();
+		        		Integer productReserveQty=p.getReservedQty();
+		        		Integer productDemandQty=p.getDemandQty();
+		        		Integer availableQty=productInstockQty-productReserveQty-productDemandQty;
+	            		p.setAvailableQty(availableQty);
+		        		return productRepo.save(p);
+		        	});
+		    });
+	    	}
+	    	
+	    	return Mono.error(new SystemException(ErrorCode.ACTION_NOT_EQUAL_TO_REPLACE_OR_ADD, "Add a proper action"));
+	    	
+	    	
+	    }
 
 	
 	
